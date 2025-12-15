@@ -13,6 +13,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  * Receives Google ID token from frontend
  */
 router.post("/google", async (req, res) => {
+  console.log("credential received:", !!req.body.credential);
   const { credential } = req.body;
 
   if (!credential) {
