@@ -6,6 +6,7 @@ import JournalCalendar from "./components/JournalCalendar";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 function App() {
+  console.log("VITE_GOOGLE_CLIENT_ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [selectedDate, setSelectedDate] = useState(null);
   const formatDateTime = (isoString) => {
   const date = new Date(isoString);
