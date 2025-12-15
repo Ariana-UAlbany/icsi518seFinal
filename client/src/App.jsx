@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 function App() {
   // -----------------------------
   // Auth state
@@ -26,7 +28,8 @@ function App() {
   // Google Login handler
   // -----------------------------
   const handleLogin = async (credentialResponse) => {
-    const res = await fetch("http://localhost:8080/auth/google", {
+    //const res = await fetch("http://localhost:8080/auth/google", {
+    const res = await fetch(`${API_URL}/auth/google`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -46,12 +49,21 @@ function App() {
   };
 
   // -----------------------------
+  // Logout handler
+  // -----------------------------
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  setUser(null);
+  setEntries([]);
+};
+
+  // -----------------------------
   // Fetch user specific journal entries (READ)
   // -----------------------------
   useEffect(() => {
   if (!token) return;
 
-  fetch("/api/journals", {
+  fetch(`${API_URL}/api/journals`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -70,7 +82,7 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const res = await fetch("/api/journals", {
+    const res = await fetch(`${API_URL}/api/journals`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -98,7 +110,7 @@ function App() {
   // Update journal entry (UPDATE)
   // -----------------------------
   const handleUpdate = async (id) => {
-    const res = await fetch(`/api/journals/${id}`, {
+    const res = await fetch(`${API_URL}/api/journals/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -125,7 +137,7 @@ function App() {
   // Delete journal entry (DELETE)
   // -----------------------------
   const handleDelete = async (id) => {
-    await fetch(`/api/journals/${id}`, {
+    await fetch(`${API_URL}/api/journals/${id}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -149,8 +161,12 @@ function App() {
         />
       )}
 
-      {user && <p>Welcome, {user.name} 👋</p>}
-
+  {user && (
+    <>
+      <p>Welcome, {user.name} 👋</p>
+      <button onClick={handleLogout}>Logout</button>
+    </>
+  )} 
       <hr />
       {/*Journal UI only visible when logged in*/}
       {user && (<>
