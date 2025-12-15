@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./db/connect.js";
+
 import journalRoutes from "./routes/journals.js";
 import authRoutes from "./routes/auth.js";
 
@@ -9,38 +10,59 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+/**
+ * ---- CORS (IMPORTANT) ----
+ * Allow Vercel frontend + local dev
+ */
+app.use(
+  cors({
+    origin: [
+      "https://icsi518se-final.vercel.app",
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Routes
-app.use("/api/journals", journalRoutes);
-app.use("/auth", authRoutes);
-
-// Health check (used by Cloud Run)
+/**
+ * ---- HEALTH CHECK (MUST BE BEFORE DB) ----
+ * Cloud Run readiness depends on this
+ */
 app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// Root
+/**
+ * ---- ROUTES ----
+ */
+app.use("/auth", authRoutes);
+app.use("/api/journals", journalRoutes);
+
+/**
+ * ---- ROOT ----
+ */
 app.get("/", (req, res) => {
-  res.send("API is running!");
+  res.send("MoodLog API is running");
 });
 
+/**
+ * ---- START SERVER FIRST ----
+ * Cloud Run requires listening before heavy work
+ */
 const PORT = process.env.PORT || 8080;
 
-// ✅ SAFE STARTUP: only listen after MongoDB connects
-const startServer = async () => {
-  try {
-    await connectDB(process.env.MONGO_URI);
-    console.log("MongoDB connected");
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (err) {
-    console.error("Failed to start server:", err);
-    process.exit(1); // fail fast so Cloud Run knows it's unhealthy
-  }
-};
-
-startServer();
+/**
+ * ---- CONNECT DB (NON-BLOCKING) ----
+ * If this fails, health still works
+ */
+connectDB(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err.message);
+  });
