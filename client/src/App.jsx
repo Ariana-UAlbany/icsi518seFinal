@@ -6,7 +6,6 @@ import JournalCalendar from "./components/JournalCalendar";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 function App() {
-  console.log("VITE_GOOGLE_CLIENT_ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
   const [selectedDate, setSelectedDate] = useState(null);
   const formatDateTime = (isoString) => {
   const date = new Date(isoString);
@@ -68,6 +67,29 @@ function App() {
   setUser(null);
   setEntries([]);
 };
+
+
+//bugifx login
+useEffect(() => {
+  if (!token) return;
+
+  fetch(`${API_URL}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Not authenticated");
+      return res.json();
+    })
+    .then((user) => setUser(user))
+    .catch(() => {
+      localStorage.removeItem("token");
+      setUser(null);
+    });
+}, [token]);
+
+
 
   // -----------------------------
   // Fetch user specific journal entries (READ)
@@ -246,7 +268,7 @@ function App() {
     const entryDate = new Date(entry.createdAt)
     return entryDate.toDateString() === selectedDate.toDateString()
   })
-  .map(entry =>  {console.log(entry.sentiment); return (
+  .map(entry =>  (
     // existing card UI here
   
           <li key={entry._id} className={`journal-card ${entry._removing ? "removing" : ""}`}>
@@ -305,7 +327,7 @@ function App() {
               </div>
             )}
           </li>
-        )}
+        )
         )}
       </ul>
       </>)}

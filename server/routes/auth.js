@@ -55,4 +55,10 @@ router.post("/google", async (req, res) => {
   }
 });
 
+import authMiddleware from "../middleware/auth.js";
+
+router.get("/me", authMiddleware, async (req, res) => {
+  res.json(req.user);
+});
+
 export default router;
