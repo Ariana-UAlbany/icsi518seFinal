@@ -1,29 +1,81 @@
 import { useEffect, useState } from "react";
+import { GoogleLogin } from "@react-oauth/google";
 
 function App() {
+  // -----------------------------
+  // Auth state
+  // -----------------------------
+  const [user, setUser] = useState(null);
+  const token = localStorage.getItem("token");
+
+  // -----------------------------
+  // Journal state
+  // -----------------------------
   const [entries, setEntries] = useState([]);
   const [text, setText] = useState("");
   const [mood, setMood] = useState("happy");
 
+  // -----------------------------
+  // Edit state
+  // -----------------------------
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   const [editMood, setEditMood] = useState("happy");
 
-  // READ
-  useEffect(() => {
-    fetch("/api/journals")
-      .then((res) => res.json())
-      .then((data) => setEntries(data))
-      .catch(console.error);
-  }, []);
+  // -----------------------------
+  // Google Login handler
+  // -----------------------------
+  const handleLogin = async (credentialResponse) => {
+    const res = await fetch("http://localhost:8080/auth/google", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        credential: credentialResponse.credential,
+      }),
+    });
 
-  // CREATE
+    const data = await res.json();
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      setUser(data.user);
+      console.log("Logged in user:", data.user);
+    } else {
+      console.error("Login failed", data);
+    }
+  };
+
+  // -----------------------------
+  // Fetch user specific journal entries (READ)
+  // -----------------------------
+  useEffect(() => {
+  if (!token) return;
+
+  fetch("/api/journals", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Unauthorized");
+      return res.json();
+    })
+    .then((data) => setEntries(data))
+    .catch(console.error);
+}, [token]);
+
+  // -----------------------------
+  // Create journal entry (CREATE)
+  // -----------------------------
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const res = await fetch("/api/journals", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ text, mood }),
     });
 
@@ -33,18 +85,25 @@ function App() {
     setMood("happy");
   };
 
-  // ENTER EDIT MODE
+  // -----------------------------
+  // Enter edit mode
+  // -----------------------------
   const startEdit = (entry) => {
     setEditingId(entry._id);
     setEditText(entry.text);
     setEditMood(entry.mood);
   };
 
-  // UPDATE
+  // -----------------------------
+  // Update journal entry (UPDATE)
+  // -----------------------------
   const handleUpdate = async (id) => {
     const res = await fetch(`/api/journals/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         text: editText,
         mood: editMood,
@@ -62,10 +121,15 @@ function App() {
     setEditingId(null);
   };
 
-  // DELETE
+  // -----------------------------
+  // Delete journal entry (DELETE)
+  // -----------------------------
   const handleDelete = async (id) => {
     await fetch(`/api/journals/${id}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
 
     setEntries(entries.filter((entry) => entry._id !== id));
@@ -73,9 +137,26 @@ function App() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Digital Journal</h1>
+      <h1>MoodLog – Digital Journal & Mood Tracker</h1>
 
-      {/* CREATE FORM */}
+      {/* -----------------------------
+           Google Login
+         ----------------------------- */}
+      {!user && (
+        <GoogleLogin
+          onSuccess={handleLogin}
+          onError={() => console.log("Login Failed")}
+        />
+      )}
+
+      {user && <p>Welcome, {user.name} 👋</p>}
+
+      <hr />
+      {/*Journal UI only visible when logged in*/}
+      {user && (<>
+      {/* -----------------------------
+           Create Form
+         ----------------------------- */}
       <form onSubmit={handleSubmit}>
         <textarea
           placeholder="Write your journal entry..."
@@ -99,7 +180,9 @@ function App() {
 
       <hr />
 
-      {/* JOURNAL LIST */}
+      {/* -----------------------------
+           Journal List
+         ----------------------------- */}
       <ul>
         {entries.map((entry) => (
           <li key={entry._id} style={{ marginBottom: "1rem" }}>
@@ -143,6 +226,7 @@ function App() {
           </li>
         ))}
       </ul>
+      </>)}
     </div>
   );
 }
