@@ -1,10 +1,9 @@
 # MoodLog – Digital Journal & Mood Tracker
 
 MoodLog is a full-stack web application that allows users to create personal journal entries, track their moods over time, and reflect on emotional patterns. The application uses Google authentication for secure access and is fully deployed to the cloud. AI Usage Notice: Made using ChatGPT.
----
 
 ## Documentation
-Please see included powerpoint presentation outlining the process of building this application
+Please see included powerpoint presentation on Brightspace outlining the process of building this application. Brightspace and powerpoint both have Demo Video. Thank you.
 
 ---
 ## Live Application
