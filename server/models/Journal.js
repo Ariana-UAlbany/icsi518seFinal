@@ -10,6 +10,10 @@ const journalSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    sentiment: {
+      label: String,
+      score: Number,
+    },
     user: {//for privatization of user data when logging in with Google OAuth: every journal entry must belong to a user
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

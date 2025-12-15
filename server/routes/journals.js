@@ -1,6 +1,7 @@
 import express from "express";
 import Journal from "../models/Journal.js";
 import authMiddleware from "../middleware/auth.js";
+import { analyzeSentiment } from "../services/sentiment.js";
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -9,12 +10,19 @@ router.use(authMiddleware);
  * POST /api/journals
  * Create a new journal entry
  */
+/**
+ * POST /api/journals
+ * Create a new journal entry
+ */
 router.post("/", async (req, res) => {
   const { text, mood } = req.body;
+
+  const sentiment = await analyzeSentiment(text);
 
   const entry = await Journal.create({
     text,
     mood,
+    sentiment,
     user: req.user._id,
   });
 

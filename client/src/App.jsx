@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import JournalCalendar from "./components/JournalCalendar";
+
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 function App() {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const formatDateTime = (isoString) => {
+  const date = new Date(isoString);
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  };
+
   // -----------------------------
   // Auth state
   // -----------------------------
@@ -92,7 +103,7 @@ function App() {
     });
 
     const newEntry = await res.json();
-    setEntries([newEntry, ...entries]);
+    setEntries(prev => [newEntry, ...prev]);
     setText("");
     setMood("happy");
   };
@@ -137,6 +148,15 @@ function App() {
   // Delete journal entry (DELETE)
   // -----------------------------
   const handleDelete = async (id) => {
+  // Add visual removal first
+  setEntries((prev) =>
+    prev.map((e) =>
+      e._id === id ? { ...e, _removing: true } : e
+    )
+  );
+
+  // Wait for animation
+  setTimeout(async () => {
     await fetch(`${API_URL}/api/journals/${id}`, {
       method: "DELETE",
       headers: {
@@ -144,11 +164,12 @@ function App() {
       },
     });
 
-    setEntries(entries.filter((entry) => entry._id !== id));
-  };
+    setEntries((prev) => prev.filter((e) => e._id !== id));
+  }, 250);
+};
 
   return (
-    <div style={{ padding: "2rem" }}>
+    <div className="app-container">
       <h1>MoodLog – Digital Journal & Mood Tracker</h1>
 
       {/* -----------------------------
@@ -162,11 +183,20 @@ function App() {
       )}
 
   {user && (
-    <>
-      <p>Welcome, {user.name} 👋</p>
-      <button onClick={handleLogout}>Logout</button>
-    </>
-  )} 
+  <div className="welcome-section">
+    <div>
+      <h2>Hello, {user.name} 👋</h2>
+      <p className="welcome-subtitle">
+        Take a moment to reflect and log how you’re feeling today.
+      </p>
+    </div>
+
+    <button className="secondary" onClick={handleLogout}>
+      Logout
+    </button>
+  </div>
+)}
+
       <hr />
       {/*Journal UI only visible when logged in*/}
       {user && (<>
@@ -196,14 +226,31 @@ function App() {
 
       <hr />
 
+        <JournalCalendar
+  entries={entries}
+  selectedDate={selectedDate}
+  onSelect={setSelectedDate}
+/>
+
+      <hr />
+
+
       {/* -----------------------------
            Journal List
          ----------------------------- */}
       <ul>
-        {entries.map((entry) => (
-          <li key={entry._id} style={{ marginBottom: "1rem" }}>
+        {entries
+  .filter(entry => {
+    if (!selectedDate) return true
+    const entryDate = new Date(entry.createdAt)
+    return entryDate.toDateString() === selectedDate.toDateString()
+  })
+  .map(entry =>  {console.log(entry.sentiment); return (
+    // existing card UI here
+  
+          <li key={entry._id} className={`journal-card ${entry._removing ? "removing" : ""}`}>
             {editingId === entry._id ? (
-              <>
+              <div key={`edit-${entry._id}`} className="edit-panel">
                 <textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
@@ -221,26 +268,44 @@ function App() {
                   <option value="excited">Excited</option>
                 </select>
 
-                <br />
+                <div className="edit-actions">
                 <button onClick={() => handleUpdate(entry._id)}>
                   Save
                 </button>
-                <button onClick={() => setEditingId(null)}>
+                <button className="secondary" onClick={() => setEditingId(null)}>
                   Cancel
                 </button>
-              </>
+              </div>
+              </div>
             ) : (
-              <>
-                <strong>{entry.mood}</strong>: {entry.text}
-                <br />
+              <div key={`view-${entry._id}`} className="view-panel">
+                {/*<strong>{entry.mood}</strong>: {entry.text}*/}
+                <span className={`mood-badge mood-${entry.mood}`}>
+                  {entry.mood}
+                </span>
+                <p className="journal-text">{entry.text}</p>
+                <div className="sentiment"> {/*Uses external API */}
+                {entry.sentiment?.label === "POSITIVE" && "😊 Positive"}
+                 {entry.sentiment?.label === "NEGATIVE" && "😔 Negative"}
+                 {entry.sentiment?.label === "UNKNOWN" && "😐 Neutral / Unclear"}
+                </div>  
+
+                <p className="journal-timestamp">
+                  {entry.updatedAt !== entry.createdAt
+                  ? `Updated ${formatDateTime(entry.updatedAt)}`
+                  : `Created ${formatDateTime(entry.createdAt)}`}
+                </p>
+                <div className="entry-actions">
                 <button onClick={() => startEdit(entry)}>Edit</button>
-                <button onClick={() => handleDelete(entry._id)}>
+                <button className="danger" onClick={() => handleDelete(entry._id)}>
                   Delete
                 </button>
-              </>
+              </div>
+              </div>
             )}
           </li>
-        ))}
+        )}
+        )}
       </ul>
       </>)}
     </div>
