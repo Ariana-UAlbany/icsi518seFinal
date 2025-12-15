@@ -315,3 +315,32 @@ hr {
   background: #22c55e !important;
   color: black !important;
 }
+
+/* ===== Animated Gradient Background (Animista-based) ===== */
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: linear-gradient(
+    270deg,
+    rgb(1, 48, 1),
+    #071937,
+    #1b0434,
+    #30051a
+  );
+  background-size: 800% 800%;
+  animation: bg-pan-left 200s linear infinite;
+}
+
+/* Animista keyframes */
+@keyframes bg-pan-left {
+  0% {
+    background-position: 100% 50%;
+  }
+  50% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
